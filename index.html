@@ -6,7 +6,105 @@
 <title>Portafolio · Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+// ═══════════════════════════════════════════════════════════
+// EDIT MODAL
+// ═══════════════════════════════════════════════════════════
+let modalCtx = null; // { type, index }
+
+function openModal(title, sub, bodyHtml, ctx) {
+  g('modal-title').textContent = title;
+  g('modal-sub').textContent = sub;
+  g('modal-body').innerHTML = bodyHtml;
+  modalCtx = ctx;
+  g('edit-modal').classList.add('open');
+}
+function closeModal() {
+  g('edit-modal').classList.remove('open');
+  modalCtx = null;
+}
+// close on overlay click
+g('edit-modal').addEventListener('click', e => { if (e.target === g('edit-modal')) closeModal(); });
+// close on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function selOpts(opts, val) {
+  return opts.map(o => `<option value="${o.v}" ${o.v === val ? 'selected' : ''}>${o.l}</option>`).join('');
+}
+function fld(label, inputHtml) {
+  return `<div class="form-group"><label>${label}</label>${inputHtml}</div>`;
+}
+
+// ── ACCIONES ──
+function openEditAcc(i) {
+  const p = accPos[i];
+  const body = `<div class="modal-grid">
+    ${fld('Ticker', `<input type="text" id="me-ticker" value="${p.ticker}">`)}
+    ${fld('Moneda', `<select id="me-currency"><option value="USD" ${p.currency==='USD'?'selected':''}>USD</option><option value="COP" ${p.currency==='COP'?'selected':''}>COP</option></select>`)}
+    ${fld('Mercado', `<select id="me-market"><option value="COL" ${p.market==='COL'?'selected':''}>Colombia</option><option value="INT" ${p.market==='INT'?'selected':''}>Internacional</option></select>`)}
+    ${fld('Cantidad', `<input type="number" id="me-qty" value="${p.qty}" step="any" min="0">`)}
+    ${fld('Precio compra', `<input type="number" id="me-buy" value="${p.buy}" step="any" min="0">`)}
+    ${fld('Precio actual', `<input type="number" id="me-cur" value="${p.cur}" step="any" min="0">`)}
+  </div>`;
+  openModal('Editar acción', `Posición #${i + 1} · ${p.ticker}`, body, { type: 'acc', index: i });
+}
+
+// ── FONDOS ──
+function openEditFon(i) {
+  const p = fonPos[i];
+  const typeOpts = ['Acciones','Renta fija','Balanceado','Inmobiliario','Índice','Otro']
+    .map(t => `<option value="${t}" ${t === p.type ? 'selected' : ''}>${t}</option>`).join('');
+  const body = `<div class="modal-grid">
+    ${fld('Nombre', `<input type="text" id="me-name" value="${p.name.replace(/"/g,'&quot;')}">`)}
+    ${fld('Tipo', `<select id="me-type">${typeOpts}</select>`)}
+    ${fld('Moneda', `<select id="me-currency"><option value="COP" ${p.currency==='COP'?'selected':''}>COP</option><option value="USD" ${p.currency==='USD'?'selected':''}>USD</option></select>`)}
+    ${fld('Mercado', `<select id="me-market"><option value="COL" ${p.market==='COL'?'selected':''}>Colombia</option><option value="INT" ${p.market==='INT'?'selected':''}>Internacional</option></select>`)}
+    ${fld('Capital invertido', `<input type="number" id="me-cost" value="${p.cost}" step="any" min="0">`)}
+    ${fld('Valor actual', `<input type="number" id="me-cur" value="${p.cur}" step="any" min="0">`)}
+  </div>`;
+  openModal('Editar fondo', `Fondo #${i + 1} · ${p.name}`, body, { type: 'fon', index: i });
+}
+
+// ── CRYPTO ──
+function openEditCry(i) {
+  const p = cryPos[i];
+  const body = `<div class="modal-grid">
+    ${fld('Activo', `<input type="text" id="me-asset" value="${p.asset}">`)}
+    ${fld('Moneda', `<select id="me-currency"><option value="USD" ${p.currency==='USD'?'selected':''}>USD</option><option value="COP" ${p.currency==='COP'?'selected':''}>COP</option></select>`)}
+    ${fld('Cantidad', `<input type="number" id="me-qty" value="${p.qty}" step="any" min="0">`)}
+    ${fld('Precio compra', `<input type="number" id="me-buy" value="${p.buy}" step="any" min="0">`)}
+    ${fld('Precio actual', `<input type="number" id="me-cur" value="${p.cur}" step="any" min="0">`)}
+    <div></div>
+  </div>`;
+  openModal('Editar crypto', `Activo #${i + 1} · ${p.asset}`, body, { type: 'cry', index: i });
+}
+
+// ── SAVE ──
+function saveModal() {
+  if (!modalCtx) return;
+  const { type, index: i } = modalCtx;
+  const val = id => { const e = g(id); return e ? e.value : null; };
+  const num = id => { const e = g(id); return e ? parseFloat(e.value) || 0 : 0; };
+
+  if (type === 'acc') {
+    const ticker = (val('me-ticker') || '').trim().toUpperCase();
+    if (!ticker) return;
+    accPos[i] = { ...accPos[i], ticker, currency: val('me-currency'), market: val('me-market'), qty: num('me-qty'), buy: num('me-buy'), cur: num('me-cur') };
+    saveLS(); closeModal(); renderAcc(); updateDash();
+  } else if (type === 'fon') {
+    const name = (val('me-name') || '').trim();
+    if (!name) return;
+    fonPos[i] = { ...fonPos[i], name, type: val('me-type'), currency: val('me-currency'), market: val('me-market'), cost: num('me-cost'), cur: num('me-cur') };
+    saveLS(); closeModal(); renderFon(); updateDash();
+  } else if (type === 'cry') {
+    const asset = (val('me-asset') || '').trim().toUpperCase();
+    if (!asset) return;
+    cryPos[i] = { ...cryPos[i], asset, currency: val('me-currency'), qty: num('me-qty'), buy: num('me-buy'), cur: num('me-cur') };
+    saveLS(); closeModal(); renderCry(); updateDash();
+  }
+}
+
+</script>
 <style>
 /* ── TOKENS ── */
 :root {
@@ -144,6 +242,22 @@ select option{background:var(--bg2)}
 .btn-danger:hover{background:rgba(240,96,96,.08);border-color:var(--neg)}
 .del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;padding:0 4px;line-height:1;transition:color .15s}
 .del-btn:hover{color:var(--neg)}
+
+/* ── EDIT MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:420px;max-width:95vw;position:relative;animation:modalIn .18s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:20px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.modal-grid.cols1{grid-template-columns:1fr}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;transition:color .15s}
+.modal-close:hover{color:var(--text)}
+.edit-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0 4px;line-height:1;transition:color .15s;opacity:0}
+tr:hover .edit-btn{opacity:1}
+.edit-btn:hover{color:var(--accent2)}
 
 /* Subtabs */
 .subtabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px;width:fit-content}
@@ -628,18 +742,26 @@ function clearAll() {
 // FX
 // ═══════════════════════════════════════════════════════════
 async function fetchRate() {
-  try {
-    const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=COP');
-    const d = await r.json();
-    if (d?.rates?.COP) {
-      FX = d.rates.COP;
-      g('fx-rate').textContent = '1 USD = ' + FX.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' COP';
-      g('fx-time').textContent = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-    } else throw 0;
-  } catch {
-    g('fx-rate').textContent = '1 USD ≈ 3,637.51 COP';
-    g('fx-time').textContent = 'ref.';
+  g('fx-rate').textContent = '...';
+  const apis = [
+    () => fetch('https://open.er-api.com/v6/latest/USD').then(r => r.json()).then(d => d.rates.COP),
+    () => fetch('https://api.exchangerate.host/latest?base=USD&symbols=COP').then(r => r.json()).then(d => d.rates.COP),
+    () => fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json').then(r => r.json()).then(d => d.usd.cop),
+  ];
+  for (const api of apis) {
+    try {
+      const rate = await api();
+      if (rate && rate > 100) {
+        FX = rate;
+        g('fx-rate').textContent = '1 USD = ' + FX.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' COP';
+        g('fx-time').textContent = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        renderAll(); updateDash();
+        return;
+      }
+    } catch(e) { continue; }
   }
+  g('fx-rate').textContent = '1 USD ≈ ' + FX.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' COP';
+  g('fx-time').textContent = 'ref.';
   renderAll(); updateDash();
 }
 
@@ -678,11 +800,8 @@ function setCat(cat) {
   activeCat = cat;
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
   ['all','acciones','fondos','crypto','inmueble'].forEach(c => {
-    g('dash-' + c).style.display = (cat === c || (cat === 'all' && c === 'all')) ? 'block' : 'none';
+    g('dash-' + c).style.display = c === cat ? 'block' : 'none';
   });
-  // hide all first then show the right one
-  document.querySelectorAll('[id^="dash-"]').forEach(el => el.style.display = 'none');
-  g('dash-' + cat).style.display = 'block';
   updateDash();
 }
 
@@ -894,10 +1013,12 @@ function renderAcc() {
       <td><span class="badge ${p.currency === 'COP' ? 'badge-cop' : 'badge-usd'}">${p.currency}</span></td>
       <td class="mono dim">${p.qty}</td>
       <td class="mono dim">${fmtNative(p.buy, p.currency)}</td>
-      <td><input type="number" value="${p.cur}" step="any" style="width:90px" onchange="updAccPrice(${i},this.value)"></td>
       <td class="mono">${fmtD(val)}</td>
       <td class="mono ${pCls(pnl)}">${pStr(pnl)}</td>
-      <td><button class="del-btn" onclick="delAcc(${i})">×</button></td>
+      <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+        <button class="edit-btn" onclick="openEditAcc(${i})" title="Editar">✏</button>
+        <button class="del-btn" onclick="delAcc(${i})">×</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -928,10 +1049,12 @@ function renderFon() {
       <td><span class="badge ${p.market === 'COL' ? 'badge-col' : 'badge-int'}">${p.market}</span></td>
       <td><span class="badge ${p.currency === 'COP' ? 'badge-cop' : 'badge-usd'}">${p.currency}</span></td>
       <td class="mono dim">${fmtNative(p.cost, p.currency)}</td>
-      <td><input type="number" value="${p.cur}" step="any" style="width:100px" onchange="updFonPrice(${i},this.value)"></td>
       <td class="mono">${fmtD(val)}</td>
       <td class="mono ${pCls(pnl)}">${pStr(pnl)}</td>
-      <td><button class="del-btn" onclick="delFon(${i})">×</button></td>
+      <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+        <button class="edit-btn" onclick="openEditFon(${i})" title="Editar">✏</button>
+        <button class="del-btn" onclick="delFon(${i})">×</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -960,10 +1083,12 @@ function renderCry() {
       <td><span class="badge ${p.currency === 'COP' ? 'badge-cop' : 'badge-usd'}">${p.currency}</span></td>
       <td class="mono dim">${p.qty}</td>
       <td class="mono dim">${fmtNative(p.buy, p.currency)}</td>
-      <td><input type="number" value="${p.cur}" step="any" style="width:100px" onchange="updCryPrice(${i},this.value)"></td>
       <td class="mono">${fmtD(val)}</td>
       <td class="mono ${pCls(pnl)}">${pStr(pnl)}</td>
-      <td><button class="del-btn" onclick="delCry(${i})">×</button></td>
+      <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+        <button class="edit-btn" onclick="openEditCry(${i})" title="Editar">✏</button>
+        <button class="del-btn" onclick="delCry(${i})">×</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -1034,6 +1159,119 @@ setTimeout(() => {
 // init dash-all visible
 g('dash-all').style.display = 'block';
 ['dash-acciones','dash-fondos','dash-crypto','dash-inmueble'].forEach(id => g(id).style.display = 'none');
+
+// ═══════════════════════════════════════════════════════════
+// EDIT MODAL
+// ═══════════════════════════════════════════════════════════
+let modalCtx = null; // { type, index }
+
+function openModal(title, sub, bodyHtml, ctx) {
+  g('modal-title').textContent = title;
+  g('modal-sub').textContent = sub;
+  g('modal-body').innerHTML = bodyHtml;
+  modalCtx = ctx;
+  g('edit-modal').classList.add('open');
+}
+function closeModal() {
+  g('edit-modal').classList.remove('open');
+  modalCtx = null;
+}
+// close on overlay click
+g('edit-modal').addEventListener('click', e => { if (e.target === g('edit-modal')) closeModal(); });
+// close on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function selOpts(opts, val) {
+  return opts.map(o => `<option value="${o.v}" ${o.v === val ? 'selected' : ''}>${o.l}</option>`).join('');
+}
+function fld(label, inputHtml) {
+  return `<div class="form-group"><label>${label}</label>${inputHtml}</div>`;
+}
+
+// ── ACCIONES ──
+function openEditAcc(i) {
+  const p = accPos[i];
+  const body = `<div class="modal-grid">
+    ${fld('Ticker', `<input type="text" id="me-ticker" value="${p.ticker}">`)}
+    ${fld('Moneda', `<select id="me-currency"><option value="USD" ${p.currency==='USD'?'selected':''}>USD</option><option value="COP" ${p.currency==='COP'?'selected':''}>COP</option></select>`)}
+    ${fld('Mercado', `<select id="me-market"><option value="COL" ${p.market==='COL'?'selected':''}>Colombia</option><option value="INT" ${p.market==='INT'?'selected':''}>Internacional</option></select>`)}
+    ${fld('Cantidad', `<input type="number" id="me-qty" value="${p.qty}" step="any" min="0">`)}
+    ${fld('Precio compra', `<input type="number" id="me-buy" value="${p.buy}" step="any" min="0">`)}
+    ${fld('Precio actual', `<input type="number" id="me-cur" value="${p.cur}" step="any" min="0">`)}
+  </div>`;
+  openModal('Editar acción', `Posición #${i + 1} · ${p.ticker}`, body, { type: 'acc', index: i });
+}
+
+// ── FONDOS ──
+function openEditFon(i) {
+  const p = fonPos[i];
+  const typeOpts = ['Acciones','Renta fija','Balanceado','Inmobiliario','Índice','Otro']
+    .map(t => `<option value="${t}" ${t === p.type ? 'selected' : ''}>${t}</option>`).join('');
+  const body = `<div class="modal-grid">
+    ${fld('Nombre', `<input type="text" id="me-name" value="${p.name.replace(/"/g,'&quot;')}">`)}
+    ${fld('Tipo', `<select id="me-type">${typeOpts}</select>`)}
+    ${fld('Moneda', `<select id="me-currency"><option value="COP" ${p.currency==='COP'?'selected':''}>COP</option><option value="USD" ${p.currency==='USD'?'selected':''}>USD</option></select>`)}
+    ${fld('Mercado', `<select id="me-market"><option value="COL" ${p.market==='COL'?'selected':''}>Colombia</option><option value="INT" ${p.market==='INT'?'selected':''}>Internacional</option></select>`)}
+    ${fld('Capital invertido', `<input type="number" id="me-cost" value="${p.cost}" step="any" min="0">`)}
+    ${fld('Valor actual', `<input type="number" id="me-cur" value="${p.cur}" step="any" min="0">`)}
+  </div>`;
+  openModal('Editar fondo', `Fondo #${i + 1} · ${p.name}`, body, { type: 'fon', index: i });
+}
+
+// ── CRYPTO ──
+function openEditCry(i) {
+  const p = cryPos[i];
+  const body = `<div class="modal-grid">
+    ${fld('Activo', `<input type="text" id="me-asset" value="${p.asset}">`)}
+    ${fld('Moneda', `<select id="me-currency"><option value="USD" ${p.currency==='USD'?'selected':''}>USD</option><option value="COP" ${p.currency==='COP'?'selected':''}>COP</option></select>`)}
+    ${fld('Cantidad', `<input type="number" id="me-qty" value="${p.qty}" step="any" min="0">`)}
+    ${fld('Precio compra', `<input type="number" id="me-buy" value="${p.buy}" step="any" min="0">`)}
+    ${fld('Precio actual', `<input type="number" id="me-cur" value="${p.cur}" step="any" min="0">`)}
+    <div></div>
+  </div>`;
+  openModal('Editar crypto', `Activo #${i + 1} · ${p.asset}`, body, { type: 'cry', index: i });
+}
+
+// ── SAVE ──
+function saveModal() {
+  if (!modalCtx) return;
+  const { type, index: i } = modalCtx;
+  const val = id => { const e = g(id); return e ? e.value : null; };
+  const num = id => { const e = g(id); return e ? parseFloat(e.value) || 0 : 0; };
+
+  if (type === 'acc') {
+    const ticker = (val('me-ticker') || '').trim().toUpperCase();
+    if (!ticker) return;
+    accPos[i] = { ...accPos[i], ticker, currency: val('me-currency'), market: val('me-market'), qty: num('me-qty'), buy: num('me-buy'), cur: num('me-cur') };
+    saveLS(); closeModal(); renderAcc(); updateDash();
+  } else if (type === 'fon') {
+    const name = (val('me-name') || '').trim();
+    if (!name) return;
+    fonPos[i] = { ...fonPos[i], name, type: val('me-type'), currency: val('me-currency'), market: val('me-market'), cost: num('me-cost'), cur: num('me-cur') };
+    saveLS(); closeModal(); renderFon(); updateDash();
+  } else if (type === 'cry') {
+    const asset = (val('me-asset') || '').trim().toUpperCase();
+    if (!asset) return;
+    cryPos[i] = { ...cryPos[i], asset, currency: val('me-currency'), qty: num('me-qty'), buy: num('me-buy'), cur: num('me-cur') };
+    saveLS(); closeModal(); renderCry(); updateDash();
+  }
+}
+
 </script>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title" id="modal-title">Editar posición</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveModal()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

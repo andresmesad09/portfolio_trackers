@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portafolio · Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ── TOKENS ── */
+:root {
+  --bg: #0e0f11;
+  --bg2: #161719;
+  --bg3: #1e2022;
+  --border: #2a2c30;
+  --border2: #363a3f;
+  --text: #e8eaed;
+  --text2: #8b9099;
+  --text3: #555c66;
+  --accent: #c8f060;
+  --accent2: #7eb8f7;
+  --pos: #5dde8a;
+  --neg: #f06060;
+  --warn: #f0b860;
+  --cat-acc: #7eb8f7;
+  --cat-fon: #b89ef7;
+  --cat-cry: #f7c97e;
+  --cat-inm: #f77eb8;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
+body{min-height:100vh;display:flex;flex-direction:column}
+::selection{background:var(--accent);color:#000}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── LAYOUT ── */
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 28px;border-bottom:1px solid var(--border);
+  background:var(--bg);position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(12px);
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center}
+.logo-mark svg{width:16px;height:16px}
+.logo-text{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:0.05em;color:var(--text)}
+.header-right{display:flex;align-items:center;gap:10px}
+.fx-pill{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:20px;padding:5px 12px;font-family:var(--mono);font-size:12px;
+}
+.fx-dot{width:7px;height:7px;border-radius:50%;background:var(--pos);flex-shrink:0;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.fx-val{color:var(--text);font-weight:500}
+.fx-time{color:var(--text3)}
+.btn-icon{background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text2);cursor:pointer;font-size:12px;transition:border-color .15s,color .15s}
+.btn-icon:hover{border-color:var(--border2);color:var(--text)}
+.cur-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.cur-toggle button{padding:4px 12px;font-size:12px;font-family:var(--mono);border:none;background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.cur-toggle button.active{background:var(--accent);color:#000;font-weight:500}
+
+.app-body{display:flex;flex:1;overflow:hidden}
+.sidebar{
+  width:200px;flex-shrink:0;border-right:1px solid var(--border);
+  padding:20px 0;display:flex;flex-direction:column;gap:2px;
+  position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 20px;
+  color:var(--text2);cursor:pointer;font-size:13px;transition:all .15s;
+  border-left:2px solid transparent;background:transparent;border:none;
+  width:100%;text-align:left;border-left:2px solid transparent;
+}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--accent);background:linear-gradient(90deg,rgba(200,240,96,.07) 0%,transparent 100%);border-left-color:var(--accent)}
+.nav-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.6}
+.nav-item.active svg{opacity:1}
+
+.main{flex:1;overflow-y:auto;padding:28px}
+.page{display:none}.page.active{display:block}
+
+/* ── COMPONENTS ── */
+.page-title{font-size:22px;font-weight:600;margin-bottom:4px}
+.page-sub{color:var(--text2);font-size:13px;margin-bottom:24px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-family:var(--mono)}
+.kpi-val{font-size:24px;font-weight:500;font-family:var(--mono);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:5px;font-family:var(--mono)}
+.kpi.accent{border-color:var(--accent);background:linear-gradient(135deg,rgba(200,240,96,.08) 0%,var(--bg2) 60%)}
+.kpi.accent .kpi-val{color:var(--accent)}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card-title{font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:-4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--text3);font-weight:400;font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td:not(:first-child),th:not(:first-child){text-align:right}
+tbody tr:hover td{background:var(--bg3)}
+.mono{font-family:var(--mono)}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.dim{color:var(--text2)}
+
+/* Badges */
+.badge{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:4px;font-weight:500;display:inline-block;letter-spacing:.02em}
+.badge-col{background:rgba(93,222,138,.12);color:var(--pos);border:1px solid rgba(93,222,138,.2)}
+.badge-int{background:rgba(126,184,247,.12);color:var(--accent2);border:1px solid rgba(126,184,247,.2)}
+.badge-usd{background:rgba(126,184,247,.12);color:var(--accent2);border:1px solid rgba(126,184,247,.2)}
+.badge-cop{background:rgba(93,222,138,.12);color:var(--pos);border:1px solid rgba(93,222,138,.2)}
+.badge-fondo{background:rgba(184,158,247,.12);color:#b89ef7;border:1px solid rgba(184,158,247,.2)}
+
+/* Forms */
+.form-row{display:grid;gap:10px;align-items:end;margin-top:14px}
+.form-group label{display:block;font-size:11px;font-family:var(--mono);color:var(--text3);margin-bottom:5px;letter-spacing:.04em}
+input[type=text],input[type=number],select,textarea{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+  color:var(--text);font-size:13px;font-family:var(--font);padding:8px 10px;outline:none;
+  transition:border-color .15s;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,240,96,.1)}
+select option{background:var(--bg2)}
+.btn{font-size:12px;padding:8px 16px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font);font-weight:500;transition:all .15s;border:1px solid var(--border);background:transparent;color:var(--text)}
+.btn:hover{background:var(--bg3);border-color:var(--border2)}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:#000}
+.btn-accent:hover{background:#d4f570;border-color:#d4f570}
+.btn-danger{border-color:rgba(240,96,96,.3);color:var(--neg)}
+.btn-danger:hover{background:rgba(240,96,96,.08);border-color:var(--neg)}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;padding:0 4px;line-height:1;transition:color .15s}
+.del-btn:hover{color:var(--neg)}
+
+/* Subtabs */
+.subtabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px;width:fit-content}
+.stab{font-size:12px;padding:5px 16px;border-radius:16px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .15s}
+.stab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* Category filters */
+.cat-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.cat-btn{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .15s}
+.cat-btn:hover{border-color:var(--border2);color:var(--text)}
+.cat-btn.active{border-color:var(--accent);color:var(--text);background:rgba(200,240,96,.07)}
+.cat-dot{width:8px;height:8px;border-radius:50%}
+
+/* Charts */
+.chart-wrap{position:relative;width:100%;height:200px}
+
+/* Alloc bars */
+.alloc-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.alloc-item:last-child{border-bottom:none}
+.alloc-name{width:110px;font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alloc-bar-bg{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.alloc-bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.alloc-pct{width:38px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--text2)}
+.alloc-val{width:90px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--text)}
+
+/* Info rows */
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-key{color:var(--text2)}
+.info-val{font-family:var(--mono);color:var(--text)}
+.info-tag{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);font-family:var(--mono)}
+
+/* Save toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 16px;font-size:12px;font-family:var(--mono);color:var(--pos);display:flex;align-items:center;gap:8px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* Suggested */
+.sug-alloc{display:flex;align-items:center;gap:0;background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;height:10px;margin-bottom:20px}
+.sug-seg{height:100%;transition:width .5s ease}
+
+/* Responsive */
+@media(max-width:720px){
+  .sidebar{display:none}
+  .main{padding:16px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M2 12L6 6l3 4 2-3 3 5H2z" fill="#000"/></svg>
+    </div>
+    <span class="logo-text">PORTAFOLIO/TRACKER</span>
+  </div>
+  <div class="header-right">
+    <div class="fx-pill">
+      <span class="fx-dot"></span>
+      <span class="fx-val" id="fx-rate">—</span>
+      <span class="fx-time" id="fx-time"></span>
+      <button class="btn-icon" onclick="fetchRate()" title="Actualizar tasa">↻</button>
+    </div>
+    <div class="cur-toggle">
+      <button class="active" onclick="setDisplayCur('USD')">USD</button>
+      <button onclick="setDisplayCur('COP')">COP</button>
+    </div>
+    <span id="save-toast-inline" style="font-size:11px;font-family:var(--mono);color:var(--pos);opacity:0;transition:opacity .3s;width:60px;text-align:center">✓ saved</span>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="app-body">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <button class="nav-item active" onclick="showPage('dashboard')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('trii')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 12V6l4-4 4 4 4-4v6l-4 4-4-4-4 4z" opacity=".3"/><path d="M2 12l4-4 4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      Trii
+    </button>
+    <button class="nav-item" onclick="showPage('crypto')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" opacity=".2"/><path d="M6 5h3.5a1.5 1.5 0 010 3H6m0 0h4a1.5 1.5 0 010 3H6m0-6v6" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
+      Crypto
+    </button>
+    <button class="nav-item" onclick="showPage('inmueble')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 14V7l6-5 6 5v7H2z" opacity=".2"/><path d="M2 14V7l6-5 6 5v7M6 14v-4h4v4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Inmueble
+    </button>
+    <button class="nav-item" onclick="showPage('sugerido')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10 5 12l.5-3.5L3 6l3.5-.5z"/></svg>
+      Sugerido
+    </button>
+    <button class="nav-item" onclick="showPage('ajustes')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="2"/><path d="M8 2v1M8 13v1M2 8h1M13 8h1M3.5 3.5l.7.7M11.8 11.8l.7.7M3.5 12.5l.7-.7M11.8 4.2l.7-.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>
+      Ajustes
+    </button>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Visión general de tu portafolio</div>
+
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div class="cat-filters">
+        <button class="cat-btn active" data-cat="all" onclick="setCat('all')"><span class="cat-dot" style="background:#888"></span>Todo</button>
+        <button class="cat-btn" data-cat="acciones" onclick="setCat('acciones')"><span class="cat-dot" style="background:var(--cat-acc)"></span>Acciones</button>
+        <button class="cat-btn" data-cat="fondos" onclick="setCat('fondos')"><span class="cat-dot" style="background:var(--cat-fon)"></span>Fondos</button>
+        <button class="cat-btn" data-cat="crypto" onclick="setCat('crypto')"><span class="cat-dot" style="background:var(--cat-cry)"></span>Crypto</button>
+        <button class="cat-btn" data-cat="inmueble" onclick="setCat('inmueble')"><span class="cat-dot" style="background:var(--cat-inm)"></span>Inmueble</button>
+      </div>
+
+      <!-- ALL -->
+      <div id="dash-all">
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">Distribución por categoría</div>
+            <div class="chart-wrap"><canvas id="donutAll"></canvas></div>
+            <div id="legend-all" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:11px;font-family:var(--mono);color:var(--text2)"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Peso relativo</div>
+            <div id="alloc-all"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Resumen por categoría</div>
+          <div class="table-wrap"><table><thead><tr><th>Categoría</th><th>Invertido</th><th>Valor actual</th><th>P&L</th><th>% del total</th></tr></thead><tbody id="dash-table"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ACCIONES -->
+      <div id="dash-acciones" style="display:none">
+        <div class="grid2">
+          <div class="card"><div class="card-title">Por ticker</div><div class="chart-wrap"><canvas id="donutAcc"></canvas></div><div id="legend-acc" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:11px;font-family:var(--mono);color:var(--text2)"></div></div>
+          <div class="card"><div class="card-title">Distribución</div><div id="alloc-acc"></div></div>
+        </div>
+        <div class="card"><div class="card-title">Métricas</div><div class="kpi-grid" id="kpi-acc" style="margin-bottom:0"></div></div>
+      </div>
+
+      <!-- FONDOS -->
+      <div id="dash-fondos" style="display:none">
+        <div class="grid2">
+          <div class="card"><div class="card-title">Por fondo</div><div class="chart-wrap"><canvas id="donutFon"></canvas></div><div id="legend-fon" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:11px;font-family:var(--mono);color:var(--text2)"></div></div>
+          <div class="card"><div class="card-title">Distribución</div><div id="alloc-fon"></div></div>
+        </div>
+        <div class="card"><div class="card-title">Métricas</div><div class="kpi-grid" id="kpi-fon" style="margin-bottom:0"></div></div>
+      </div>
+
+      <!-- CRYPTO -->
+      <div id="dash-crypto" style="display:none">
+        <div class="grid2">
+          <div class="card"><div class="card-title">Por activo</div><div class="chart-wrap"><canvas id="donutCry"></canvas></div><div id="legend-cry" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:11px;font-family:var(--mono);color:var(--text2)"></div></div>
+          <div class="card"><div class="card-title">Distribución</div><div id="alloc-cry"></div></div>
+        </div>
+        <div class="card"><div class="card-title">Métricas</div><div class="kpi-grid" id="kpi-cry" style="margin-bottom:0"></div></div>
+      </div>
+
+      <!-- INMUEBLE DASH -->
+      <div id="dash-inmueble" style="display:none">
+        <div class="card"><div class="card-title">Resumen inmueble</div><div id="dash-inm-content"></div></div>
+      </div>
+    </div>
+
+    <!-- ── TRII ── -->
+    <div id="page-trii" class="page">
+      <div class="page-title">Trii</div>
+      <div class="page-sub">Acciones y fondos de inversión</div>
+      <div class="subtabs">
+        <button class="stab active" onclick="showStab('acc')">Acciones</button>
+        <button class="stab" onclick="showStab('fon')">Fondos</button>
+      </div>
+
+      <!-- Acciones -->
+      <div id="stab-acc">
+        <div class="card">
+          <div class="card-title">Posiciones en acciones</div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Ticker</th><th>Mercado</th><th>Mon.</th><th>Cant.</th><th>P. compra</th><th>P. actual</th><th>Valor</th><th>P&L</th><th></th></tr></thead>
+            <tbody id="tbl-acc"></tbody></table>
+          </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text3);margin-bottom:10px;letter-spacing:.04em">NUEVA POSICIÓN</div>
+            <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto">
+              <div class="form-group"><label>Ticker</label><input type="text" id="t-ticker" placeholder="AAPL"></div>
+              <div class="form-group"><label>Mercado</label><select id="t-market"><option value="COL">Colombia</option><option value="INT">Internacional</option></select></div>
+              <div class="form-group"><label>Moneda</label><select id="t-currency"><option value="USD">USD</option><option value="COP">COP</option></select></div>
+              <div class="form-group"><label>Cantidad</label><input type="number" id="t-qty" placeholder="10" min="0" step="any"></div>
+              <div class="form-group"><label>P. compra</label><input type="number" id="t-buy" placeholder="150" min="0" step="any"></div>
+              <div class="form-group"><label>P. actual</label><input type="number" id="t-cur" placeholder="165" min="0" step="any"></div>
+              <div class="form-group"><label>&nbsp;</label><button class="btn btn-accent" onclick="addAcc()">+ Agregar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fondos -->
+      <div id="stab-fon" style="display:none">
+        <div class="card">
+          <div class="card-title">Fondos de inversión</div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Nombre</th><th>Tipo</th><th>Mercado</th><th>Mon.</th><th>Invertido</th><th>Valor actual</th><th>Valor</th><th>P&L</th><th></th></tr></thead>
+            <tbody id="tbl-fon"></tbody></table>
+          </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text3);margin-bottom:10px;letter-spacing:.04em">NUEVO FONDO</div>
+            <div class="form-row" style="grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 1fr auto">
+              <div class="form-group"><label>Nombre</label><input type="text" id="f-name" placeholder="Skandia Acciones"></div>
+              <div class="form-group"><label>Tipo</label><select id="f-type"><option>Acciones</option><option>Renta fija</option><option>Balanceado</option><option>Inmobiliario</option><option>Índice</option><option>Otro</option></select></div>
+              <div class="form-group"><label>Mercado</label><select id="f-market"><option value="COL">Colombia</option><option value="INT">Internacional</option></select></div>
+              <div class="form-group"><label>Moneda</label><select id="f-currency"><option value="COP">COP</option><option value="USD">USD</option></select></div>
+              <div class="form-group"><label>Invertido</label><input type="number" id="f-cost" placeholder="5000000" min="0" step="any"></div>
+              <div class="form-group"><label>Valor actual</label><input type="number" id="f-cur" placeholder="5400000" min="0" step="any"></div>
+              <div class="form-group"><label>&nbsp;</label><button class="btn btn-accent" onclick="addFon()">+ Agregar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CRYPTO ── -->
+    <div id="page-crypto" class="page">
+      <div class="page-title">Crypto</div>
+      <div class="page-sub">Activos en Binance</div>
+      <div class="card">
+        <div class="card-title">Posiciones</div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Activo</th><th>Mon.</th><th>Cantidad</th><th>P. compra</th><th>P. actual</th><th>Valor</th><th>P&L</th><th></th></tr></thead>
+          <tbody id="tbl-cry"></tbody></table>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-family:var(--mono);color:var(--text3);margin-bottom:10px;letter-spacing:.04em">NUEVO ACTIVO</div>
+          <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr auto">
+            <div class="form-group"><label>Activo</label><input type="text" id="c-asset" placeholder="BTC"></div>
+            <div class="form-group"><label>Moneda</label><select id="c-currency"><option value="USD">USD</option><option value="COP">COP</option></select></div>
+            <div class="form-group"><label>Cantidad</label><input type="number" id="c-qty" placeholder="0.5" min="0" step="any"></div>
+            <div class="form-group"><label>P. compra</label><input type="number" id="c-buy" placeholder="40000" min="0" step="any"></div>
+            <div class="form-group"><label>P. actual</label><input type="number" id="c-cur" placeholder="62000" min="0" step="any"></div>
+            <div class="form-group"><label>&nbsp;</label><button class="btn btn-accent" onclick="addCry()">+ Agregar</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INMUEBLE ── -->
+    <div id="page-inmueble" class="page">
+      <div class="page-title">Inmueble</div>
+      <div class="page-sub">Apartamento Cartagena — Airbnb</div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Información</div>
+          <div class="info-row"><span class="info-key">Estado</span><span class="info-tag">En construcción</span></div>
+          <div class="info-row"><span class="info-key">Entrega estimada</span><span class="info-val">2028</span></div>
+          <div class="info-row"><span class="info-key">Total socios</span><span class="info-val">13</span></div>
+          <div class="info-row"><span class="info-key">Semanas/año asignadas</span><span class="info-val">4 semanas</span></div>
+          <div class="info-row"><span class="info-key">Tu participación</span><span class="info-val">7.69% · 1/13</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Datos financieros</div>
+          <div class="form-row" style="grid-template-columns:1fr 1fr">
+            <div class="form-group"><label>Moneda</label><select id="prop-cur" onchange="saveProp()"><option value="USD">USD</option><option value="COP">COP</option></select></div>
+            <div class="form-group"><label>Valor total inmueble</label><input type="number" id="prop-total" placeholder="200000" oninput="saveProp()"></div>
+            <div class="form-group"><label>Ya pagado por ti</label><input type="number" id="prop-paid" placeholder="15000" oninput="saveProp()"></div>
+            <div class="form-group"><label>Renta estimada/semana</label><input type="number" id="prop-rent" placeholder="800" oninput="saveProp()"></div>
+            <div class="form-group"><label>Costos admin. anual</label><input type="number" id="prop-admin" placeholder="2000" oninput="saveProp()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Análisis financiero</div>
+        <div id="prop-results"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Notas e hitos</div>
+        <div id="prop-notes"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" id="note-input" placeholder="Ej: Pago cuota #2 — $3,000" style="flex:1">
+          <button class="btn btn-accent" onclick="addNote()">+ Nota</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SUGERIDO ── -->
+    <div id="page-sugerido" class="page">
+      <div class="page-title">Portafolio sugerido</div>
+      <div class="page-sub">Perfil moderado-agresivo · horizonte largo plazo</div>
+      <div class="card" style="border-color:rgba(200,240,96,.25);background:linear-gradient(135deg,rgba(200,240,96,.05) 0%,var(--bg2) 60%)">
+        <div class="card-title" style="color:var(--accent)">Asignación objetivo</div>
+        <div class="sug-alloc" id="sug-alloc-bar"></div>
+        <div class="kpi-grid" style="margin-bottom:0">
+          <div class="kpi"><div class="kpi-label">Acciones INT</div><div class="kpi-val" style="color:var(--cat-acc)">30%</div><div class="kpi-sub">VOO, QQQ, MSFT · USD</div></div>
+          <div class="kpi"><div class="kpi-label">Fondos</div><div class="kpi-val" style="color:var(--cat-fon)">20%</div><div class="kpi-sub">Índice + renta fija</div></div>
+          <div class="kpi"><div class="kpi-label">Inmueble</div><div class="kpi-val" style="color:var(--cat-inm)">25%</div><div class="kpi-sub">Apto Cartagena · COP</div></div>
+          <div class="kpi"><div class="kpi-label">Acciones CO</div><div class="kpi-val" style="color:var(--pos)">10%</div><div class="kpi-sub">Ecopetrol, Bancolombia</div></div>
+          <div class="kpi"><div class="kpi-label">Crypto</div><div class="kpi-val" style="color:var(--cat-cry)">10%</div><div class="kpi-sub">BTC 70% / ETH 30%</div></div>
+          <div class="kpi"><div class="kpi-label">Liquidez / CDT</div><div class="kpi-val" style="color:var(--text2)">5%</div><div class="kpi-sub">Fondo emergencia · COP</div></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Fondos recomendados (Trii)</div>
+          <div class="table-wrap"><table><thead><tr><th>Fondo</th><th>Tipo</th><th>Mercado</th><th>Moneda</th></tr></thead><tbody>
+            <tr><td class="mono">Skandia Acciones</td><td><span class="badge badge-fondo">Acciones</span></td><td><span class="badge badge-col">COL</span></td><td><span class="badge badge-cop">COP</span></td></tr>
+            <tr><td class="mono">Fid. Bogotá Renta</td><td><span class="badge badge-fondo">Renta fija</span></td><td><span class="badge badge-col">COL</span></td><td><span class="badge badge-cop">COP</span></td></tr>
+            <tr><td class="mono">Franklin Templeton</td><td><span class="badge badge-fondo">Balanceado</span></td><td><span class="badge badge-int">INT</span></td><td><span class="badge badge-usd">USD</span></td></tr>
+            <tr><td class="mono">iShares IVV</td><td><span class="badge badge-fondo">Índice</span></td><td><span class="badge badge-int">INT</span></td><td><span class="badge badge-usd">USD</span></td></tr>
+          </tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Acciones recomendadas (Trii)</div>
+          <div class="table-wrap"><table><thead><tr><th>Ticker</th><th>Nombre</th><th>Mercado</th></tr></thead><tbody>
+            <tr><td class="mono" style="color:var(--accent)">VOO</td><td>Vanguard S&P 500 ETF</td><td><span class="badge badge-int">INT</span></td></tr>
+            <tr><td class="mono" style="color:var(--accent)">QQQ</td><td>Invesco NASDAQ-100</td><td><span class="badge badge-int">INT</span></td></tr>
+            <tr><td class="mono" style="color:var(--accent)">MSFT</td><td>Microsoft Corp.</td><td><span class="badge badge-int">INT</span></td></tr>
+            <tr><td class="mono" style="color:var(--accent)">ECO</td><td>Ecopetrol S.A.</td><td><span class="badge badge-col">COL</span></td></tr>
+            <tr><td class="mono" style="color:var(--accent)">PFBCOLOM</td><td>Bancolombia Pref.</td><td><span class="badge badge-col">COL</span></td></tr>
+          </tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AJUSTES ── -->
+    <div id="page-ajustes" class="page">
+      <div class="page-title">Ajustes</div>
+      <div class="page-sub">Gestión de datos y configuración</div>
+      <div class="card">
+        <div class="card-title">Estado del almacenamiento local</div>
+        <div id="storage-status" style="font-size:13px;color:var(--text2);margin-bottom:16px;font-family:var(--mono)"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-accent" onclick="exportJSON()">↓ Exportar JSON</button>
+          <button class="btn btn-danger" onclick="clearAll()">⚠ Borrar todos los datos</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Importar datos</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Pega un JSON exportado previamente para restaurar tu portafolio.</p>
+        <textarea id="import-json" style="height:100px;resize:vertical" placeholder='{"accPos":[...],...}'></textarea>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-accent" onclick="importJSON()">↑ Importar y restaurar</button>
+          <span id="import-msg" style="font-size:12px;font-family:var(--mono)"></span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Guardado</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const LS_KEY = 'ptf_v2';
+let FX = 3637.51;
+let displayCur = 'USD';
+let activeCat = 'all';
+let accPos = [], fonPos = [], cryPos = [], notes = [];
+const charts = {};
+const PALETTE = ['#7eb8f7','#b89ef7','#f7c97e','#f77eb8','#7ef7b0','#f77e7e','#7ef7f7','#f7a07e','#a0f77e','#f7f07e'];
+
+// ═══════════════════════════════════════════════════════════
+// LOCALSTORAGE
+// ═══════════════════════════════════════════════════════════
+function saveLS() {
+  const data = {
+    accPos, fonPos, cryPos, notes,
+    prop: {
+      cur: g('prop-cur')?.value || 'USD',
+      total: g('prop-total')?.value || '',
+      paid: g('prop-paid')?.value || '',
+      rent: g('prop-rent')?.value || '',
+      admin: g('prop-admin')?.value || ''
+    },
+    displayCur,
+    savedAt: new Date().toISOString()
+  };
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    showToast();
+    updateStorageStatus(data);
+  } catch(e) { console.warn('localStorage error:', e); }
+}
+
+function loadLS() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    accPos = d.accPos || [];
+    fonPos = d.fonPos || [];
+    cryPos = d.cryPos || [];
+    notes  = d.notes  || [];
+    if (d.displayCur) {
+      displayCur = d.displayCur;
+      document.querySelectorAll('.cur-toggle button').forEach(b => b.classList.toggle('active', b.textContent === displayCur));
+    }
+    if (d.prop) {
+      setTimeout(() => {
+        const p = d.prop;
+        if (p.cur)   g('prop-cur').value   = p.cur;
+        if (p.total) g('prop-total').value = p.total;
+        if (p.paid)  g('prop-paid').value  = p.paid;
+        if (p.rent)  g('prop-rent').value  = p.rent;
+        if (p.admin) g('prop-admin').value = p.admin;
+        updateProp();
+      }, 50);
+    }
+    updateStorageStatus(d);
+  } catch(e) { console.warn('loadLS error:', e); }
+}
+
+function updateStorageStatus(d) {
+  const el = g('storage-status');
+  if (!el) return;
+  const cnt = (d.accPos||[]).length + (d.fonPos||[]).length + (d.cryPos||[]).length;
+  const when = d.savedAt ? new Date(d.savedAt).toLocaleString('es-CO') : 'nunca';
+  el.innerHTML = `<span style="color:var(--pos)">✓ localStorage activo</span>&nbsp;&nbsp;·&nbsp;&nbsp;${cnt} posiciones&nbsp;&nbsp;·&nbsp;&nbsp;Último guardado: ${when}`;
+}
+
+function showToast() {
+  const el = g('save-toast-inline');
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.opacity = '0', 1500);
+}
+
+function exportJSON() {
+  const d = { accPos, fonPos, cryPos, notes,
+    prop: { cur: g('prop-cur')?.value, total: g('prop-total')?.value, paid: g('prop-paid')?.value, rent: g('prop-rent')?.value, admin: g('prop-admin')?.value },
+    exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'portafolio_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+}
+
+function importJSON() {
+  const msg = g('import-msg');
+  try {
+    const d = JSON.parse(g('import-json').value.trim());
+    accPos = d.accPos || [];
+    fonPos = d.fonPos || [];
+    cryPos = d.cryPos || [];
+    notes  = d.notes  || [];
+    if (d.prop) {
+      const p = d.prop;
+      if (p.cur)   g('prop-cur').value   = p.cur;
+      if (p.total) g('prop-total').value = p.total;
+      if (p.paid)  g('prop-paid').value  = p.paid;
+      if (p.rent)  g('prop-rent').value  = p.rent;
+      if (p.admin) g('prop-admin').value = p.admin;
+    }
+    saveLS(); renderAll(); updateProp(); updateDash();
+    msg.innerHTML = '<span style="color:var(--pos)">✓ Importado correctamente.</span>';
+    g('import-json').value = '';
+  } catch(e) {
+    msg.innerHTML = '<span style="color:var(--neg)">✗ JSON inválido.</span>';
+  }
+}
+
+function clearAll() {
+  if (!confirm('¿Borrar todos los datos? Esta acción no se puede deshacer.')) return;
+  accPos = []; fonPos = []; cryPos = []; notes = [];
+  ['prop-total','prop-paid','prop-rent','prop-admin'].forEach(id => { const e = g(id); if(e) e.value = ''; });
+  g('prop-results').innerHTML = '';
+  saveLS(); renderAll(); updateDash();
+}
+
+// ═══════════════════════════════════════════════════════════
+// FX
+// ═══════════════════════════════════════════════════════════
+async function fetchRate() {
+  try {
+    const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=COP');
+    const d = await r.json();
+    if (d?.rates?.COP) {
+      FX = d.rates.COP;
+      g('fx-rate').textContent = '1 USD = ' + FX.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' COP';
+      g('fx-time').textContent = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    } else throw 0;
+  } catch {
+    g('fx-rate').textContent = '1 USD ≈ 3,637.51 COP';
+    g('fx-time').textContent = 'ref.';
+  }
+  renderAll(); updateDash();
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+const g = id => document.getElementById(id);
+const toUSD = (a, cur) => cur === 'COP' ? a / FX : a;
+const fmtUSD = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtCOP = n => '$' + Math.round(n).toLocaleString('es-CO');
+const fmtNative = (a, cur) => cur === 'COP' ? fmtCOP(a) + ' COP' : fmtUSD(a) + ' USD';
+const fmtD = usd => displayCur === 'COP' ? fmtCOP(usd * FX) + ' COP' : fmtUSD(usd);
+const pCls = v => v >= 0 ? 'pos' : 'neg';
+const pStr = v => (v >= 0 ? '+' : '') + fmtD(v);
+const sum = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0);
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  g('page-' + name).classList.add('active');
+  document.querySelector(`.nav-item[onclick="showPage('${name}')"]`).classList.add('active');
+  if (name === 'dashboard') updateDash();
+}
+
+function showStab(name) {
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.stab[onclick="showStab('${name}')"]`).classList.add('active');
+  g('stab-acc').style.display = name === 'acc' ? 'block' : 'none';
+  g('stab-fon').style.display = name === 'fon' ? 'block' : 'none';
+}
+
+function setCat(cat) {
+  activeCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  ['all','acciones','fondos','crypto','inmueble'].forEach(c => {
+    g('dash-' + c).style.display = (cat === c || (cat === 'all' && c === 'all')) ? 'block' : 'none';
+  });
+  // hide all first then show the right one
+  document.querySelectorAll('[id^="dash-"]').forEach(el => el.style.display = 'none');
+  g('dash-' + cat).style.display = 'block';
+  updateDash();
+}
+
+function setDisplayCur(c) {
+  displayCur = c;
+  document.querySelectorAll('.cur-toggle button').forEach(b => b.classList.toggle('active', b.textContent === c));
+  saveLS(); renderAll(); updateDash();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHARTS HELPERS
+// ═══════════════════════════════════════════════════════════
+function mkDonut(id, labels, data, colors) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const ctx = g(id); if (!ctx) return;
+  charts[id] = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ' ' + fmtD(c.parsed) },
+          backgroundColor: '#1e2022', borderColor: '#2a2c30', borderWidth: 1,
+          titleColor: '#8b9099', bodyColor: '#e8eaed', padding: 10 }
+      }
+    }
+  });
+}
+
+function mkLegend(elId, labels, colors, vals, total) {
+  const el = g(elId); if (!el) return;
+  el.innerHTML = labels.map((l, i) => {
+    const pct = total > 0 ? (vals[i] / total * 100).toFixed(1) : 0;
+    return `<span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:${colors[i]};display:inline-block"></span>${l} · ${pct}%</span>`;
+  }).join('');
+}
+
+function mkAlloc(elId, items) {
+  const el = g(elId); if (!el) return;
+  if (!items.length) { el.innerHTML = '<p style="font-size:12px;color:var(--text3);padding:12px 0;font-family:var(--mono)">— sin datos —</p>'; return; }
+  const total = sum(items, i => i.val);
+  el.innerHTML = items.map(item => {
+    const pct = total > 0 ? item.val / total * 100 : 0;
+    return `<div class="alloc-item">
+      <span class="alloc-name">${item.name}</span>
+      <div class="alloc-bar-bg"><div class="alloc-bar-fill" style="width:${pct.toFixed(1)}%;background:${item.color}"></div></div>
+      <span class="alloc-pct">${pct.toFixed(1)}%</span>
+      <span class="alloc-val">${fmtD(item.val)}</span>
+    </div>`;
+  }).join('');
+}
+
+function mkKPIs(elId, items) {
+  const el = g(elId); if (!el) return;
+  el.innerHTML = items.map(m => `<div class="kpi"><div class="kpi-label">${m.label}</div><div class="kpi-val ${m.cls || ''}" style="${m.color ? 'color:' + m.color : ''}">${m.val}</div>${m.sub ? `<div class="kpi-sub">${m.sub}</div>` : ''}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function getProp() {
+  const cur = g('prop-cur')?.value || 'USD';
+  const total = parseFloat(g('prop-total')?.value) || 0;
+  const paid  = parseFloat(g('prop-paid')?.value)  || 0;
+  const rent  = parseFloat(g('prop-rent')?.value)  || 0;
+  const admin = parseFloat(g('prop-admin')?.value) || 0;
+  return { cur, total, paid, rent, admin,
+    shareUSD: toUSD(total / 13, cur),
+    paidUSD:  toUSD(paid, cur) };
+}
+
+function updateDash() {
+  const p = getProp();
+  const aV = sum(accPos, x => toUSD(x.qty * x.cur, x.currency));
+  const aC = sum(accPos, x => toUSD(x.qty * x.buy, x.currency));
+  const fV = sum(fonPos, x => toUSD(x.cur, x.currency));
+  const fC = sum(fonPos, x => toUSD(x.cost, x.currency));
+  const cV = sum(cryPos, x => toUSD(x.qty * x.cur, x.currency));
+  const cC = sum(cryPos, x => toUSD(x.qty * x.buy, x.currency));
+  const tot  = aV + fV + cV + p.shareUSD;
+  const cost = aC + fC + cC + p.paidUSD;
+  const pnl  = (aV - aC) + (fV - fC) + (cV - cC);
+  const pnlPct = cost > 0 ? pnl / cost * 100 : 0;
+
+  g('kpi-grid').innerHTML = `
+    <div class="kpi accent"><div class="kpi-label">Valor total</div><div class="kpi-val">${fmtD(tot)}</div><div class="kpi-sub">≈ ${displayCur === 'USD' ? fmtCOP(tot * FX) + ' COP' : fmtUSD(tot)}</div></div>
+    <div class="kpi"><div class="kpi-label">Capital invertido</div><div class="kpi-val">${fmtD(cost)}</div></div>
+    <div class="kpi"><div class="kpi-label">P&amp;L total</div><div class="kpi-val ${pCls(pnl)}">${pStr(pnl)}</div></div>
+    <div class="kpi"><div class="kpi-label">Retorno</div><div class="kpi-val ${pCls(pnlPct)}">${(pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2)}%</div></div>`;
+
+  const cats = [
+    { label: 'Acciones', val: aV, cost: aC, color: 'var(--cat-acc)', hex: '#7eb8f7' },
+    { label: 'Fondos',   val: fV, cost: fC, color: 'var(--cat-fon)', hex: '#b89ef7' },
+    { label: 'Crypto',   val: cV, cost: cC, color: 'var(--cat-cry)', hex: '#f7c97e' },
+    { label: 'Inmueble', val: p.shareUSD, cost: p.paidUSD, color: 'var(--cat-inm)', hex: '#f77eb8' },
+  ];
+
+  if (activeCat === 'all') {
+    mkDonut('donutAll', cats.map(c => c.label), cats.map(c => c.val), cats.map(c => c.hex));
+    mkLegend('legend-all', cats.map(c => c.label), cats.map(c => c.hex), cats.map(c => c.val), tot);
+    mkAlloc('alloc-all', cats.map(c => ({ name: c.label, val: c.val, color: c.hex })));
+    g('dash-table').innerHTML = cats.map(c => {
+      const pl = c.val - c.cost, pct = tot > 0 ? (c.val / tot * 100).toFixed(1) : 0;
+      return `<tr><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${c.hex};display:inline-block"></span>${c.label}</span></td>
+        <td class="mono dim">${fmtD(c.cost)}</td><td class="mono">${fmtD(c.val)}</td>
+        <td class="mono ${pCls(pl)}">${pStr(pl)}</td><td class="mono dim">${pct}%</td></tr>`;
+    }).join('');
+  }
+
+  if (activeCat === 'acciones') {
+    const items = accPos.map((x, i) => ({ name: x.ticker, val: toUSD(x.qty * x.cur, x.currency), cost: toUSD(x.qty * x.buy, x.currency), color: PALETTE[i % PALETTE.length] }));
+    const t = sum(items, i => i.val), pl = sum(items, i => i.val - i.cost);
+    mkDonut('donutAcc', items.map(i => i.name), items.map(i => i.val), items.map(i => i.color));
+    mkLegend('legend-acc', items.map(i => i.name), items.map(i => i.color), items.map(i => i.val), t);
+    mkAlloc('alloc-acc', items);
+    const colV = sum(accPos.filter(x => x.market === 'COL'), x => toUSD(x.qty * x.cur, x.currency));
+    const intV = sum(accPos.filter(x => x.market === 'INT'), x => toUSD(x.qty * x.cur, x.currency));
+    mkKPIs('kpi-acc', [
+      { label: 'Valor total', val: fmtD(t) },
+      { label: 'P&L', val: pStr(pl), cls: pCls(pl) },
+      { label: 'Colombia', val: fmtD(colV), sub: accPos.filter(x => x.market === 'COL').length + ' posiciones' },
+      { label: 'Internacional', val: fmtD(intV), sub: accPos.filter(x => x.market === 'INT').length + ' posiciones' },
+    ]);
+  }
+
+  if (activeCat === 'fondos') {
+    const items = fonPos.map((x, i) => ({ name: x.name, val: toUSD(x.cur, x.currency), cost: toUSD(x.cost, x.currency), color: PALETTE[i % PALETTE.length] }));
+    const t = sum(items, i => i.val), c2 = sum(items, i => i.cost), pl = t - c2;
+    const rPct = c2 > 0 ? pl / c2 * 100 : 0;
+    mkDonut('donutFon', items.map(i => i.name), items.map(i => i.val), items.map(i => i.color));
+    mkLegend('legend-fon', items.map(i => i.name), items.map(i => i.color), items.map(i => i.val), t);
+    mkAlloc('alloc-fon', items);
+    mkKPIs('kpi-fon', [
+      { label: 'Valor total', val: fmtD(t) },
+      { label: 'P&L', val: pStr(pl), cls: pCls(pl) },
+      { label: 'Rentabilidad', val: (rPct >= 0 ? '+' : '') + rPct.toFixed(2) + '%', cls: pCls(rPct) },
+      { label: 'N° fondos', val: fonPos.length },
+    ]);
+  }
+
+  if (activeCat === 'crypto') {
+    const items = cryPos.map((x, i) => ({ name: x.asset, val: toUSD(x.qty * x.cur, x.currency), cost: toUSD(x.qty * x.buy, x.currency), color: PALETTE[i % PALETTE.length] }));
+    const t = sum(items, i => i.val), c2 = sum(items, i => i.cost), pl = t - c2;
+    const rPct = c2 > 0 ? pl / c2 * 100 : 0;
+    mkDonut('donutCry', items.map(i => i.name), items.map(i => i.val), items.map(i => i.color));
+    mkLegend('legend-cry', items.map(i => i.name), items.map(i => i.color), items.map(i => i.val), t);
+    mkAlloc('alloc-cry', items);
+    mkKPIs('kpi-cry', [
+      { label: 'Valor total', val: fmtD(t) },
+      { label: 'P&L', val: pStr(pl), cls: pCls(pl) },
+      { label: 'Rentabilidad', val: (rPct >= 0 ? '+' : '') + rPct.toFixed(2) + '%', cls: pCls(rPct) },
+      { label: 'N° activos', val: cryPos.length },
+    ]);
+  }
+
+  if (activeCat === 'inmueble') {
+    const prop = getProp();
+    const shareN = prop.total / 13;
+    const annual = prop.rent * 4;
+    const net = annual - prop.admin / 13;
+    const yld = shareN > 0 ? net / shareN * 100 : 0;
+    const pending = shareN - prop.paid;
+    g('dash-inm-content').innerHTML = `
+      <div class="kpi-grid" style="margin-bottom:12px">
+        <div class="kpi"><div class="kpi-label">Valor participación</div><div class="kpi-val">${fmtD(prop.shareUSD)}</div><div class="kpi-sub">≈ ${fmtNative(shareN, prop.cur)}</div></div>
+        <div class="kpi"><div class="kpi-label">Ya pagado</div><div class="kpi-val pos">${fmtD(prop.paidUSD)}</div></div>
+        <div class="kpi"><div class="kpi-label">Airbnb / año</div><div class="kpi-val">${fmtNative(annual, prop.cur)}</div></div>
+        <div class="kpi"><div class="kpi-label">Yield estimado</div><div class="kpi-val pos">${yld.toFixed(1)}%</div></div>
+      </div>
+      <div class="info-row"><span class="info-key">Saldo pendiente</span><span class="info-val ${pending > 0 ? 'neg' : 'pos'}">${fmtNative(Math.max(0, pending), prop.cur)}</span></div>
+      <div class="info-row"><span class="info-key">Ingreso neto / año</span><span class="info-val">${fmtNative(net, prop.cur)}</span></div>`;
+  }
+
+  // Sugerido bar
+  const bar = g('sug-alloc-bar');
+  if (bar) {
+    bar.innerHTML = [
+      { pct: 30, color: '#7eb8f7' }, { pct: 20, color: '#b89ef7' },
+      { pct: 25, color: '#f77eb8' }, { pct: 10, color: '#7ef7b0' },
+      { pct: 10, color: '#f7c97e' }, { pct: 5,  color: '#555c66' }
+    ].map(s => `<div class="sug-seg" style="width:${s.pct}%;background:${s.color}"></div>`).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ACCIONES (Trii)
+// ═══════════════════════════════════════════════════════════
+function addAcc() {
+  const ticker = g('t-ticker').value.trim().toUpperCase();
+  const market = g('t-market').value, currency = g('t-currency').value;
+  const qty = parseFloat(g('t-qty').value), buy = parseFloat(g('t-buy').value), cur = parseFloat(g('t-cur').value);
+  if (!ticker || isNaN(qty) || isNaN(buy) || isNaN(cur)) return;
+  accPos.push({ ticker, market, currency, qty, buy, cur });
+  ['t-ticker','t-qty','t-buy','t-cur'].forEach(id => g(id).value = '');
+  saveLS(); renderAcc(); updateDash();
+}
+function delAcc(i) { accPos.splice(i, 1); saveLS(); renderAcc(); updateDash(); }
+function updAccPrice(i, v) { accPos[i].cur = parseFloat(v) || 0; saveLS(); renderAcc(); updateDash(); }
+
+function renderAcc() {
+  const tb = g('tbl-acc');
+  if (!accPos.length) { tb.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3);font-family:var(--mono);font-size:12px">— sin posiciones —</td></tr>`; return; }
+  tb.innerHTML = accPos.map((p, i) => {
+    const val = toUSD(p.qty * p.cur, p.currency), pnl = val - toUSD(p.qty * p.buy, p.currency);
+    return `<tr>
+      <td class="mono" style="color:var(--accent)">${p.ticker}</td>
+      <td><span class="badge ${p.market === 'COL' ? 'badge-col' : 'badge-int'}">${p.market}</span></td>
+      <td><span class="badge ${p.currency === 'COP' ? 'badge-cop' : 'badge-usd'}">${p.currency}</span></td>
+      <td class="mono dim">${p.qty}</td>
+      <td class="mono dim">${fmtNative(p.buy, p.currency)}</td>
+      <td><input type="number" value="${p.cur}" step="any" style="width:90px" onchange="updAccPrice(${i},this.value)"></td>
+      <td class="mono">${fmtD(val)}</td>
+      <td class="mono ${pCls(pnl)}">${pStr(pnl)}</td>
+      <td><button class="del-btn" onclick="delAcc(${i})">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// FONDOS (Trii)
+// ═══════════════════════════════════════════════════════════
+function addFon() {
+  const name = g('f-name').value.trim(), type = g('f-type').value;
+  const market = g('f-market').value, currency = g('f-currency').value;
+  const cost = parseFloat(g('f-cost').value), cur = parseFloat(g('f-cur').value);
+  if (!name || isNaN(cost) || isNaN(cur)) return;
+  fonPos.push({ name, type, market, currency, cost, cur });
+  ['f-name','f-cost','f-cur'].forEach(id => g(id).value = '');
+  saveLS(); renderFon(); updateDash();
+}
+function delFon(i) { fonPos.splice(i, 1); saveLS(); renderFon(); updateDash(); }
+function updFonPrice(i, v) { fonPos[i].cur = parseFloat(v) || 0; saveLS(); renderFon(); updateDash(); }
+
+function renderFon() {
+  const tb = g('tbl-fon');
+  if (!fonPos.length) { tb.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3);font-family:var(--mono);font-size:12px">— sin fondos —</td></tr>`; return; }
+  tb.innerHTML = fonPos.map((p, i) => {
+    const val = toUSD(p.cur, p.currency), pnl = val - toUSD(p.cost, p.currency);
+    return `<tr>
+      <td class="mono" style="color:var(--text)">${p.name}</td>
+      <td><span class="badge badge-fondo">${p.type}</span></td>
+      <td><span class="badge ${p.market === 'COL' ? 'badge-col' : 'badge-int'}">${p.market}</span></td>
+      <td><span class="badge ${p.currency === 'COP' ? 'badge-cop' : 'badge-usd'}">${p.currency}</span></td>
+      <td class="mono dim">${fmtNative(p.cost, p.currency)}</td>
+      <td><input type="number" value="${p.cur}" step="any" style="width:100px" onchange="updFonPrice(${i},this.value)"></td>
+      <td class="mono">${fmtD(val)}</td>
+      <td class="mono ${pCls(pnl)}">${pStr(pnl)}</td>
+      <td><button class="del-btn" onclick="delFon(${i})">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRYPTO
+// ═══════════════════════════════════════════════════════════
+function addCry() {
+  const asset = g('c-asset').value.trim().toUpperCase(), currency = g('c-currency').value;
+  const qty = parseFloat(g('c-qty').value), buy = parseFloat(g('c-buy').value), cur = parseFloat(g('c-cur').value);
+  if (!asset || isNaN(qty) || isNaN(buy) || isNaN(cur)) return;
+  cryPos.push({ asset, currency, qty, buy, cur });
+  ['c-asset','c-qty','c-buy','c-cur'].forEach(id => g(id).value = '');
+  saveLS(); renderCry(); updateDash();
+}
+function delCry(i) { cryPos.splice(i, 1); saveLS(); renderCry(); updateDash(); }
+function updCryPrice(i, v) { cryPos[i].cur = parseFloat(v) || 0; saveLS(); renderCry(); updateDash(); }
+
+function renderCry() {
+  const tb = g('tbl-cry');
+  if (!cryPos.length) { tb.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3);font-family:var(--mono);font-size:12px">— sin activos —</td></tr>`; return; }
+  tb.innerHTML = cryPos.map((p, i) => {
+    const val = toUSD(p.qty * p.cur, p.currency), pnl = val - toUSD(p.qty * p.buy, p.currency);
+    return `<tr>
+      <td class="mono" style="color:var(--cat-cry)">${p.asset}</td>
+      <td><span class="badge ${p.currency === 'COP' ? 'badge-cop' : 'badge-usd'}">${p.currency}</span></td>
+      <td class="mono dim">${p.qty}</td>
+      <td class="mono dim">${fmtNative(p.buy, p.currency)}</td>
+      <td><input type="number" value="${p.cur}" step="any" style="width:100px" onchange="updCryPrice(${i},this.value)"></td>
+      <td class="mono">${fmtD(val)}</td>
+      <td class="mono ${pCls(pnl)}">${pStr(pnl)}</td>
+      <td><button class="del-btn" onclick="delCry(${i})">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// INMUEBLE
+// ═══════════════════════════════════════════════════════════
+function saveProp() { saveLS(); updateProp(); updateDash(); }
+
+function updateProp() {
+  const p = getProp();
+  const shareN = p.total / 13;
+  const annual = p.rent * 4;
+  const net = annual - p.admin / 13;
+  const yld = shareN > 0 ? net / shareN * 100 : 0;
+  const pending = shareN - p.paid;
+  g('prop-results').innerHTML = `
+    <div class="info-row"><span class="info-key">Valor participación (1/13)</span><span class="info-val">${fmtNative(shareN, p.cur)} <span style="color:var(--text3)">≈ ${fmtD(p.shareUSD)}</span></span></div>
+    <div class="info-row"><span class="info-key">Ya pagado</span><span class="info-val pos">${fmtNative(p.paid, p.cur)} <span style="color:var(--text3)">≈ ${fmtD(p.paidUSD)}</span></span></div>
+    <div class="info-row"><span class="info-key">Saldo pendiente</span><span class="info-val ${pending > 0 ? 'neg' : 'pos'}">${fmtNative(Math.max(0, pending), p.cur)}</span></div>
+    <div class="info-row"><span class="info-key">Ingreso Airbnb · 4 sem/año</span><span class="info-val">${fmtNative(annual, p.cur)}</span></div>
+    <div class="info-row"><span class="info-key">Ingreso neto estimado / año</span><span class="info-val">${fmtNative(net, p.cur)}</span></div>
+    <div class="info-row"><span class="info-key">Yield anual estimado</span><span class="info-val pos">${yld.toFixed(2)}%</span></div>`;
+}
+
+function addNote() {
+  const inp = g('note-input');
+  if (!inp.value.trim()) return;
+  notes.push({ text: inp.value.trim(), date: new Date().toLocaleDateString('es-CO') });
+  inp.value = '';
+  saveLS(); renderNotes();
+}
+function delNote(i) { notes.splice(i, 1); saveLS(); renderNotes(); }
+function renderNotes() {
+  const el = g('prop-notes');
+  if (!notes.length) { el.innerHTML = '<p style="font-size:12px;color:var(--text3);font-family:var(--mono)">— sin notas —</p>'; return; }
+  el.innerHTML = notes.map((n, i) => `
+    <div class="info-row">
+      <span class="info-key" style="flex:1">${n.text}</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span class="info-tag">${n.date}</span>
+        <button class="del-btn" onclick="delNote(${i})">×</button>
+      </span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER ALL + INIT
+// ═══════════════════════════════════════════════════════════
+function renderAll() { renderAcc(); renderFon(); renderCry(); renderNotes(); }
+
+// init
+loadLS();
+renderAll();
+updateDash();
+fetchRate();
+
+// init sugerido bar
+setTimeout(() => {
+  const bar = g('sug-alloc-bar');
+  if (bar) bar.innerHTML = [
+    { pct: 30, color: '#7eb8f7' }, { pct: 20, color: '#b89ef7' },
+    { pct: 25, color: '#f77eb8' }, { pct: 10, color: '#7ef7b0' },
+    { pct: 10, color: '#f7c97e' }, { pct: 5, color: '#555c66' }
+  ].map(s => `<div class="sug-seg" style="width:${s.pct}%;background:${s.color}"></div>`).join('');
+}, 100);
+
+// init dash-all visible
+g('dash-all').style.display = 'block';
+['dash-acciones','dash-fondos','dash-crypto','dash-inmueble'].forEach(id => g(id).style.display = 'none');
+</script>
+</body>
+</html>
